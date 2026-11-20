@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carnival Game</title>
+<style>
+  :root{
+    --bg1:#0c0a28; --bg2:#1b1257; --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.14);
+    --text:#eef0ff; --dim:#9aa0d4; --blue:#1e90ff;
+    --red:#ff4d6d; --yellow:#ffc933; --green:#38d97a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;color:var(--text);font-family:system-ui,Segoe UI,Roboto,sans-serif;
+       background:linear-gradient(160deg,var(--bg1),var(--bg2));}
+  header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:14px 22px}
+  header h1{font-size:20px;margin:0;flex:1;min-width:160px}
+  .chip{padding:7px 12px;border-radius:999px;font-size:13px;background:rgba(80,90,255,.25);border:1px solid var(--line)}
+  .chip.ok{background:rgba(56,217,122,.2);border-color:var(--green);color:#b8ffd6}
+  button{font:inherit;color:var(--text);cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.08);
+         padding:9px 16px;border-radius:10px}
+  button:hover{background:rgba(255,255,255,.16)}
+  button.primary{background:var(--blue);border-color:var(--blue);font-weight:600}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  main{display:grid;grid-template-columns:minmax(320px,1.35fr) minmax(300px,1fr);gap:18px;padding:0 22px 22px}
+  @media (max-width:900px){main{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .card h2{margin:0 0 12px;font-size:12px;letter-spacing:.12em;color:var(--dim);font-weight:600;text-transform:uppercase}
+  .stage{position:relative;background:#000;border-radius:10px;overflow:hidden}
+  #view{display:block;width:100%;height:auto;aspect-ratio:4/3;background:#05050f}
+  #banner{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;
+          background:rgba(8,6,30,.78);font-size:clamp(34px,7vw,72px);font-weight:800;text-align:center}
+  #banner small{font-size:clamp(14px,2vw,22px);font-weight:500;color:var(--dim);margin-top:6px}
+  #banner.win{color:var(--green)} #banner.lose{color:var(--red)}
+  .camrow{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+  .camrow select{flex:1;min-width:140px;background:#17144a;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);text-align:center;gap:6px}
+  .stats b{display:block;font-size:30px;line-height:1.2}
+  .stats span{font-size:11px;letter-spacing:.12em;color:var(--dim)}
+  .stats .lv{font-size:22px;padding-top:6px}
+  .dots{display:flex;justify-content:center;gap:16px;margin:12px 0}
+  .dot{width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,.12);border:1px solid var(--line);transition:.15s}
+  .dot.on[data-c=R]{background:var(--red);box-shadow:0 0 12px var(--red)}
+  .dot.on[data-c=Y]{background:var(--yellow);box-shadow:0 0 12px var(--yellow)}
+  .dot.on[data-c=G]{background:var(--green);box-shadow:0 0 12px var(--green)}
+  .balls{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .ball{border-radius:10px;padding:10px 6px;text-align:center;border:2px dashed rgba(255,255,255,.2);opacity:.55;font-weight:600}
+  .ball small{display:block;font-weight:400;font-size:11px;color:var(--dim);margin-top:3px}
+  .ball.active{border-style:solid;opacity:1}
+  .ball[data-c=R].active{border-color:var(--red)} .ball[data-c=Y].active{border-color:var(--yellow)} .ball[data-c=G].active{border-color:var(--green)}
+  .ball[data-c=R]{color:#ffd0d9} .ball[data-c=Y]{color:#fff0bd} .ball[data-c=G]{color:#c8ffe0}
+  .levels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+  .levels button.sel{background:var(--blue);border-color:var(--blue)}
+  .levels button small{display:block;font-size:11px;color:#dfe6ff;opacity:.8}
+  .startrow{display:flex;gap:8px;margin-top:10px}
+  .startrow button{flex:1}
+  .rules label.chk{display:flex;gap:8px;align-items:center;margin:6px 0;font-size:14px}
+  .slider{display:grid;grid-template-columns:110px 1fr 38px;gap:8px;align-items:center;margin:8px 0;font-size:14px}
+  .slider input{width:100%}
+  .help{font-size:12px;color:var(--dim);line-height:1.5;margin-top:10px}
+  .teach{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+  .teach2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  button.on{background:var(--blue);border-color:var(--blue);font-weight:600}
+  .thumbrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--dim)}
+  .thumbrow b{min-width:52px;color:var(--text)}
+  .thumbrow img{height:38px;width:auto;border-radius:6px;background:repeating-conic-gradient(#2c2c55 0 25%,#3b3b73 0 50%) 0 0/10px 10px}
+  .ball.unseen{border-color:#ff4d6d !important;background:rgba(255,77,109,.15)}
+  .log{padding:0 22px 24px;font-size:12px;color:var(--dim)}
+  .log div{margin:2px 0}
+  #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#2a2480;border:1px solid var(--line);
+         padding:10px 16px;border-radius:10px;display:none;z-index:9}
+</style>
+</head>
+<body>
+<header>
+  <h1>Carnival Game</h1>
+  <span id="chip" class="chip">ESP32 not connected</span>
+  <button id="btnConnect" class="primary">Connect ESP32</button>
+  <button id="btnReset">Reset game</button>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Laptop camera (tracks all 3 balls)</h2>
+    <div class="stage">
+      <canvas id="view" width="640" height="480"></canvas>
+      <div id="banner"></div>
+    </div>
+    <div class="camrow">
+      <select id="camSel" title="Camera"></select>
+      <button id="btnCam">Start camera</button>
+    </div>
+  </section>
+
+  <div style="display:grid;gap:18px;align-content:start">
+    <section class="card">
+      <h2>Game</h2>
+      <div class="stats">
+        <div><b id="sLevel" class="lv">Easy</b><span>LEVEL</span></div>
+        <div><b id="sBalls">0/1</b><span>BALLS</span></div>
+        <div><b id="sScore">0</b><span>SCORE</span></div>
+        <div><b id="sSecs">30</b><span>SECONDS</span></div>
+      </div>
+      <div class="dots">
+        <div class="dot" data-c="R" id="dotR" title="Red hole"></div>
+        <div class="dot" data-c="Y" id="dotY" title="Yellow hole"></div>
+        <div class="dot" data-c="G" id="dotG" title="Green hole"></div>
+      </div>
+      <div class="balls">
+        <div class="ball" data-c="R" id="ballR">Red<small id="bsR"></small></div>
+        <div class="ball" data-c="Y" id="ballY">Yellow<small id="bsY"></small></div>
+        <div class="ball" data-c="G" id="ballG">Green<small id="bsG"></small></div>
+      </div>
+      <div class="levels">
+        <button data-level="1">Easy<small>1 ball</small></button>
+        <button data-level="2">Normal<small>2 balls</small></button>
+        <button data-level="3">Hard<small>3 balls</small></button>
+      </div>
+      <div class="startrow"><button id="btnStart" class="primary">Start round</button></div>
+    </section>
+
+    <section class="card">
+      <h2>Teach the balls (AI training)</h2>
+      <div class="teach">
+        <button data-teach="0">Teach Red</button>
+        <button data-teach="1">Teach Yellow</button>
+        <button data-teach="2">Teach Green</button>
+      </div>
+      <div class="teach2">
+        <button id="btnIgnore">Ignore face / clothes</button>
+        <button id="btnClearTrain">Clear training</button>
+      </div>
+      <div class="help" id="teachHelp"></div>
+      <div id="thumbs"></div>
+    </section>
+
+    <section class="card">
+      <h2>Mark the holes in the camera picture</h2>
+      <div class="teach">
+        <button data-markhole="0">Mark Red hole</button>
+        <button data-markhole="1">Mark Yellow hole</button>
+        <button data-markhole="2">Mark Green hole</button>
+      </div>
+      <div class="teach2">
+        <button id="btnAutoHoles">Find holes automatically</button>
+        <button id="btnClearHoles">Clear marks</button>
+      </div>
+      <div class="help">Point the camera at the board so it sees the coloured rings. Press <b>Find holes automatically</b>, or press a Mark button and click on that hole's coloured ring.
+        The page draws a circle round each hole. The circles follow the holes if you move the board (switch this off in the rules panel). The marked holes are also hidden from the ball tracking, so the rings are never mistaken for a ball.</div>
+    </section>
+
+    <section class="card">
+      <h2>Teach the hole sensors</h2>
+      <div class="teach">
+        <button data-hole="R">Teach Red hole</button>
+        <button data-hole="Y">Teach Yellow hole</button>
+        <button data-hole="G">Teach Green hole</button>
+      </div>
+      <div class="teach2"><button id="btnHoleReset">Reset holes</button></div>
+      <div class="help">Press a button, then put a ball into that coloured hole (or block its IR sensor). The ESP32 learns which sensor belongs to that colour and remembers it, so the wires can be in any order.
+        A ball of the same colour as the hole = a point. A ball in a hole of another colour = game over.</div>
+      <div class="help" id="holeMap"></div>
+    </section>
+
+    <section class="card rules">
+      <h2>Rules &amp; camera tuning</h2>
+      <label class="chk"><input type="checkbox" id="optMatch"> Ball colour must match the hole it lands in</label>
+      <label class="chk"><input type="checkbox" id="optAllGone"> Game over when all the balls are used up</label>
+      <label class="chk"><input type="checkbox" id="optLoseOnMiss"> Game over when a ball is lost (gone from the screen, not scored)</label>
+      <label class="chk"><input type="checkbox" id="optFollow"> Marked holes follow the board when it moves</label>
+      <label class="chk"><input type="checkbox" id="optAutoStart"> First thrown ball starts the clock</label>
+      <div class="slider"><span>Min ball size</span><input type="range" id="minSize" min="5" max="300" step="1"><b id="vSize"></b></div>
+      <div class="slider"><span>Min saturation</span><input type="range" id="minSat" min="0" max="100" step="1"><b id="vSat"></b></div>
+      <div class="slider"><span>Min brightness</span><input type="range" id="minVal" min="0" max="100" step="1"><b id="vVal"></b></div>
+      <div class="help">Put the red, yellow and green balls where the camera can see all three at the start (a rack or tray).
+        A ball that leaves the picture counts as thrown, and the colour tells the game which ball it was.
+        Use a plain background and steady light. The three sliders only apply to balls you have not taught yet. Use the Teach buttons for best results.
+        Keep this tab visible while playing.</div>
+    </section>
+  </div>
+</main>
+
+<div class="log" id="log"></div>
+<div id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------------- settings ---------------- */
+const DEFAULTS = {match:true, allGone:true, autoStart:false, loseOnMiss:true, followHoles:true, minSize:40, minSat:50, minVal:35};
+let settings = Object.assign({}, DEFAULTS);
+try { const s = JSON.parse(localStorage.getItem('carnivalSettings3')||'{}'); Object.assign(settings, s); } catch(e){}
+function saveSettings(){ try { localStorage.setItem('carnivalSettings3', JSON.stringify(settings)); } catch(e){} }
+
+const $ = id => document.getElementById(id);
+const CH = ['R','Y','G'];
+const NAMES = {R:'Red', Y:'Yellow', G:'Green'};
+const COLORS = {R:'#ff4d6d', Y:'#ffc933', G:'#38d97a'};
+const LEVEL_NAMES = ['', 'Easy', 'Normal', 'Hard'];
+
+/* ---------------- toast / log ---------------- */
+let toastTimer = 0;
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.style.display = 'block';
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>{ t.style.display='none'; }, 3200);
+}
+const logLines = [];
+function logEvent(msg){
+  const d = new Date(); const ts = d.toLocaleTimeString([], {hour12:false});
+  logLines.unshift(ts + '  ' + msg); if (logLines.length > 6) logLines.pop();
+  $('log').innerHTML = logLines.map(l => '<div>' + l.replace(/</g,'&lt;') + '</div>').join('');
+}
+
+/* ---------------- game state (owned by the ESP32) ---------------- */
+let gs = {state:'READY', level:1, needed:1, score:0, secs:30, balls:'tnn', leds:'000'};
+let loseReason = '';
+const dotFlash = {R:0, Y:0, G:0};
+
+/* ---------------- Web Serial link ---------------- */
+let port = null, reader = null, writer = null, connected = false;
+const enc = new TextEncoder();
+
+function setConnected(v){
+  connected = v;
+  $('chip').textContent = v ? 'ESP32 connected' : 'ESP32 not connected';
+  $('chip').classList.toggle('ok', v);
+  $('btnConnect').textContent = v ? 'Disconnect' : 'Connect ESP32';
+  render();
+}
+
+function send(line){
+  if (!connected || !writer) return false;
+  writer.write(enc.encode(line + '\n')).catch(()=>{});
+  return true;
+}
+function sendCfg(){
+  send('CFG,' + (settings.match?1:0) + ',' + (settings.allGone?1:0) + ',' + (settings.autoStart?1:0) + ',' + (settings.loseOnMiss?1:0));
+}
+function needConnection(){
+  if (!connected){ toast('Connect the ESP32 first (button at the top).'); return true; }
+  return false;
+}
+
+async function connectSerial(){
+  if (connected){ await disconnectSerial(); return; }
+  if (!('serial' in navigator)){ toast('Web Serial needs Chrome or Edge on a computer.'); return; }
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({baudRate:115200});
+  } catch(err){
+    port = null;
+    if (err && err.name !== 'NotFoundError') toast('Could not open the port. Close the Arduino Serial Monitor and try again.');
+    return;
+  }
+  writer = port.writable.getWriter();
+  setConnected(true);
+  logEvent('ESP32 connected');
+  setTimeout(()=>{ sendCfg(); send('SYNC'); }, 1500);   // boards usually reboot when the port opens
+  readLoop(port);
+}
+
+async function readLoop(p){
+  const dec = new TextDecoder();
+  let buf = '';
+  try {
+    reader = p.readable.getReader();
+    for(;;){
+      const {value, done} = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, {stream:true});
+      if (buf.length > 4000) buf = buf.slice(-500);
+      let i;
+      while ((i = buf.indexOf('\n')) >= 0){
+        const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+        if (line) onLine(line);
+      }
+    }
+  } catch(e){ /* unplugged or cancelled */ }
+  await disconnectSerial();
+}
+
+async function disconnectSerial(){
+  const p = port; port = null;
+  try { if (reader) await reader.cancel(); } catch(e){}
+  try { if (reader) reader.releaseLock(); } catch(e){}
+  try { if (writer) writer.releaseLock(); } catch(e){}
+  try { if (p) await p.close(); } catch(e){}
+  reader = null; writer = null;
+  if (connected){ logEvent('ESP32 disconnected'); setConnected(false); }
+}
+
+if ('serial' in navigator){
+  navigator.serial.addEventListener('disconnect', ()=>{ disconnectSerial(); });
+}
+
+function onLine(line){
+  const p = line.split(',');
+  if (p[0] === 'HELLO'){ sendCfg(); send('SYNC'); return; }
+  if (p[0] === 'S' && p.length >= 8){
+    const prev = gs.state;
+    gs = {state:p[1], level:+p[2], needed:+p[3], score:+p[4], secs:+p[5], balls:p[6], leds:p[7]};
+    if (prev !== gs.state && (gs.state === 'READY' || gs.state === 'PLAYING')) loseReason = '';
+    render();
+    return;
+  }
+  if (p[0] === 'M' && p[1]){ holeMapStr = p[1].trim(); renderHoles(); return; }
+  if (p[0] === 'E'){
+    const ev = p[1], c = p[2];
+    const nm = NAMES[c] || '';
+    if (ev === 'HOLE'){ dotFlash[c] = performance.now() + 400; render(); setTimeout(render, 450); }
+    else if (ev === 'THROW') logEvent(nm + ' ball thrown');
+    else if (ev === 'BACK') logEvent(nm + ' ball back on the table');
+    else if (ev === 'SCORE') logEvent(nm + ' ball scored!');
+    else if (ev === 'WRONG') logEvent('A ball went into the wrong hole (' + nm + ' hole) - game over');
+    else if (ev === 'MISS') logEvent(nm + ' ball missed');
+    else if (ev === 'START') logEvent('Round started');
+    else if (ev === 'WIN') logEvent('YOU WIN');
+    else if (ev === 'LOSE'){ loseReason = c || ''; logEvent('Game over (' + (c === 'TIME' ? 'time is up' : c === 'LOST' ? 'a ball was lost' : c === 'WRONG' ? 'wrong hole' : 'no balls left') + ')'); render(); }
+    else if (ev === 'TAUGHT'){ holeTeach = null; renderHoles(); toast(nm + ' hole learned!'); logEvent(nm + ' hole learned'); }
+    else if (ev === 'TEACH') logEvent('Waiting for a ball in the ' + nm + ' hole');
+    else if (ev === 'TEACHEND'){ holeTeach = null; renderHoles(); toast('Hole teaching stopped.'); }
+    else if (ev === 'MAPRESET') logEvent('Hole sensors reset to the default order');
+    else if (ev === 'LEVEL') logEvent('Level set to ' + (LEVEL_NAMES[+c] || c));
+  }
+}
+
+/* ---------------- render ---------------- */
+const BALL_TEXT = {n:'not in play', t:'on table', f:'in the air', s:'scored!', m:'missed'};
+
+function render(){
+  $('sLevel').textContent = LEVEL_NAMES[gs.level] || gs.level;
+  const scoredBalls = (gs.balls.match(/s/g) || []).length;
+  $('sBalls').textContent = scoredBalls + '/' + gs.needed;
+  $('sScore').textContent = gs.score;
+  $('sSecs').textContent = gs.secs;
+  const now = performance.now();
+  CH.forEach((c, i) => {
+    const active = i < gs.level;
+    $('ball' + c).classList.toggle('active', active);
+    $('ball' + c).classList.toggle('unseen', active && !track[i].present && gs.state === 'READY');
+    let txt;
+    if (connected && gs.state !== 'READY') txt = BALL_TEXT[gs.balls[i]] || '';
+    else if (!active) txt = 'not in play';
+    else txt = track[i].present ? 'on table' : (cameraOn ? 'not seen' : 'camera off');
+    $('bs' + c).textContent = txt;
+    $('dot' + c).classList.toggle('on', gs.leds[i] === '1' || dotFlash[c] > now);
+  });
+  document.querySelectorAll('.levels button').forEach(b => b.classList.toggle('sel', +b.dataset.level === gs.level));
+  $('btnStart').disabled = connected && gs.state === 'PLAYING';
+
+  const ban = $('banner');
+  if (connected && gs.state === 'WIN'){
+    ban.className = 'win'; ban.style.display = 'flex'; ban.innerHTML = 'YOU WIN!<small>Score ' + gs.score + '/' + gs.needed + '</small>';
+  } else if (connected && gs.state === 'LOSE'){
+    ban.className = 'lose'; ban.style.display = 'flex';
+    ban.innerHTML = 'GAME OVER<small>' + (loseReason === 'TIME' ? 'Time is up' : loseReason === 'LOST' ? 'A ball was lost' : loseReason === 'WRONG' ? 'Wrong hole - colours must match' : 'No balls left') + ' - score ' + gs.score + '/' + gs.needed + '</small>';
+  } else {
+    ban.style.display = 'none';
+  }
+}
+setInterval(render, 500);
+
+/* ---------------- controls ---------------- */
+$('btnConnect').onclick = connectSerial;
+$('btnReset').onclick = () => { if (!needConnection()) send('RESET'); };
+$('btnStart').onclick = () => {
+  if (needConnection()) return;
+  if (!cameraOn){ toast('Start the camera first - the game must see the balls.'); return; }
+  const missing = CH.slice(0, gs.level).filter((c, i) => !track[i].present).map(c => NAMES[c]);
+  if (missing.length){ toast('The camera cannot see the ' + missing.join(' and ') + ' ball. Put it in view first.'); return; }
+  send('START');
+};
+document.querySelectorAll('.levels button').forEach(b => {
+  b.onclick = () => { if (!needConnection()) send('LEVEL,' + b.dataset.level); };
+});
+
+let holeTeach = null;                 // colour letter being taught on the ESP32
+let holeMapStr = '';
+function renderHoles(){
+  document.querySelectorAll('[data-hole]').forEach(b => b.classList.toggle('on', holeTeach === b.dataset.hole));
+  $('holeMap').textContent = holeMapStr
+    ? 'Sensors 1, 2, 3 are taught as: ' + holeMapStr.split('').map((c, i) => (i + 1) + ' = ' + (NAMES[c] || '?')).join(', ')
+    : 'Hole sensors not read yet - connect the ESP32.';
+}
+document.querySelectorAll('[data-hole]').forEach(b => {
+  b.onclick = () => {
+    if (needConnection()) return;
+    if (gs.state === 'PLAYING'){ toast('Wait until the round is over.'); return; }
+    const c = b.dataset.hole;
+    if (holeTeach === c){ send('TEACHCANCEL'); holeTeach = null; renderHoles(); return; }
+    send('TEACH,' + c); holeTeach = c; renderHoles();
+    toast('Now put a ball into the ' + NAMES[c].toUpperCase() + ' hole (or block its sensor).');
+  };
+});
+$('btnHoleReset').onclick = () => { if (!needConnection()) send('MAPRESET'); };
+
+function bindCheck(id, key){
+  const el = $(id); el.checked = !!settings[key];
+  el.onchange = () => { settings[key] = el.checked; saveSettings(); sendCfg(); };
+}
+function bindSlider(id, key, label){
+  const el = $(id), out = $(label);
+  el.value = settings[key]; out.textContent = settings[key];
+  el.oninput = () => { settings[key] = +el.value; out.textContent = el.value; saveSettings(); };
+}
+bindCheck('optMatch', 'match'); bindCheck('optAllGone', 'allGone'); bindCheck('optAutoStart', 'autoStart'); bindCheck('optLoseOnMiss', 'loseOnMiss'); bindCheck('optFollow', 'followHoles');
+bindSlider('minSize', 'minSize', 'vSize'); bindSlider('minSat', 'minSat', 'vSat'); bindSlider('minVal', 'minVal', 'vVal');
+
+/* ---------------- camera + colour tracking ---------------- */
+const AW = 160, AH = 120;                       // analysis resolution
+const APPEAR_MS = 1000;                         // ball must be seen this long before it counts as "on the table"
+const LOST_MS = 450;                            // ball must be gone this long before it counts as "thrown"
+const video = document.createElement('video');
+video.muted = true; video.playsInline = true;
+const view = $('view'), vctx = view.getContext('2d');
+const ac = document.createElement('canvas'); ac.width = AW; ac.height = AH;
+const actx = ac.getContext('2d', {willReadFrequently:true});
+const masks = [new Uint8Array(AW*AH), new Uint8Array(AW*AH), new Uint8Array(AW*AH)];
+const stack = new Int32Array(AW*AH);
+const track = CH.map(() => ({present:false, rawSince:0, lostAt:0, thrown:false, blob:null}));
+let stream = null, cameraOn = false, lastAnalyze = 0;
+
+/* ---- learned look of the balls (AI training) ---- */
+const MODEL_KEY = 'carnivalModel1';
+let models = [null, null, null];      // null = use the built-in colour range for that ball
+let ignoreZones = [];                 // learned face / clothes colours to ignore
+try {
+  const m = JSON.parse(localStorage.getItem(MODEL_KEY) || 'null');
+  if (m){ if (Array.isArray(m.models) && m.models.length === 3) models = m.models; if (Array.isArray(m.ignore)) ignoreZones = m.ignore; }
+} catch(e){}
+function saveModels(){
+  try { localStorage.setItem(MODEL_KEY, JSON.stringify({models, ignore:ignoreZones})); }
+  catch(e){ toast('Training could not be saved in this browser.'); }
+}
+
+let H = -1, S = 0, V = 0;               // result of rgb2hsv (module-level so no allocation per pixel)
+function rgb2hsv(r, g, b){
+  const max = Math.max(r,g,b), min = Math.min(r,g,b), delta = max - min;
+  V = max / 255; S = max === 0 ? 0 : delta / max; H = -1;
+  if (delta > 0){
+    if (max === r) H = ((g - b) / delta) % 6;
+    else if (max === g) H = (b - r) / delta + 2;
+    else H = (r - g) / delta + 4;
+    H *= 60; if (H < 0) H += 360;
+  }
+}
+function hdiff(a, b){ const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
+function inZone(z, h, s, v){ return h >= 0 && hdiff(h, z.hC) <= z.hTol && s >= z.sMin && v >= z.vMin; }
+
+function classify(r, g, b){                      // 0 red, 1 yellow, 2 green, -1 nothing
+  rgb2hsv(r, g, b);
+  for (const z of ignoreZones) if (inZone(z, H, S, V)) return -1;
+  for (let i = 0; i < 3; i++){
+    const m = models[i];
+    if (m){ if (inZone(m, H, S, V)) return i; }
+    else if (H >= 0 && S >= settings.minSat/100 && V >= settings.minVal/100){
+      if (i === 0 && (H < 18 || H >= 340)) return 0;
+      if (i === 1 && H >= 42 && H < 72) return 1;
+      if (i === 2 && H >= 85 && H < 165) return 2;
+    }
+  }
+  return -1;
+}
+
+/* Finds the best ball-shaped blob of one colour. Blobs that are the wrong size or not round
+   (faces, arms, clothes, shirts) are rejected. */
+function bestBlob(mask, i){
+  const m = models[i];
+  let best = null;
+  for (let start = 0; start < mask.length; start++){
+    if (mask[start] !== 1) continue;
+    let sp = 0, area = 0, x0 = AW, x1 = 0, y0 = AH, y1 = 0;
+    stack[sp++] = start; mask[start] = 2;
+    while (sp){
+      const p = stack[--sp], x = p % AW, y = (p / AW) | 0;
+      area++;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      if (x > 0      && mask[p-1]  === 1){ mask[p-1]  = 2; stack[sp++] = p-1; }
+      if (x < AW-1   && mask[p+1]  === 1){ mask[p+1]  = 2; stack[sp++] = p+1; }
+      if (y > 0      && mask[p-AW] === 1){ mask[p-AW] = 2; stack[sp++] = p-AW; }
+      if (y < AH-1   && mask[p+AW] === 1){ mask[p+AW] = 2; stack[sp++] = p+AW; }
+    }
+    const w = x1 - x0 + 1, hh = y1 - y0 + 1, asp = w / hh;
+    let ok = m ? (area >= Math.max(6, m.aMin * 0.3) && area <= m.aMax * 3.5) : area >= settings.minSize;
+    if (ok && (asp < 0.55 || asp > 1.8 || area / (w * hh) < 0.45)) ok = false;   // must be roundish
+    if (ok && (!best || area > best.area)) best = {area, x0, y0, x1, y1};
+  }
+  return best;
+}
+
+let lastFrame = null;
+function analyze(now){
+  actx.drawImage(video, 0, 0, AW, AH);
+  const d = actx.getImageData(0, 0, AW, AH).data;
+  lastFrame = d;
+  if (settings.followHoles) trackHoles(now);
+  masks[0].fill(0); masks[1].fill(0); masks[2].fill(0);
+  for (let i = 0, p = 0; i < d.length; i += 4, p++){
+    if (holeMask[p]) continue;                     // inside a marked hole: never a ball
+    const c = classify(d[i], d[i+1], d[i+2]);
+    if (c >= 0) masks[c][p] = 1;
+  }
+  for (let i = 0; i < 3; i++) updatePresence(i, bestBlob(masks[i], i), now);
+}
+
+function updatePresence(i, blob, now){
+  const st = track[i];
+  const seen = !!blob;
+  if (seen){
+    st.blob = blob; st.lostAt = 0;
+    if (!st.rawSince) st.rawSince = now;
+    if (!st.present && now - st.rawSince >= APPEAR_MS){
+      st.present = true;
+      if (st.thrown){ st.thrown = false; send('B,' + CH[i]); }
+    }
+  } else {
+    st.rawSince = 0; st.blob = null;
+    if (!st.lostAt) st.lostAt = now;
+    if (st.present && now - st.lostAt >= LOST_MS){
+      st.present = false; st.thrown = true;
+      send('T,' + CH[i]);
+      logEvent(NAMES[CH[i]] + ' ball left the picture');
+    }
+  }
+}
+
+/* ---- marked holes (circles drawn on the camera picture) ---- */
+const HOLE_KEY = 'carnivalHoles1';
+let holes = [null, null, null];          // {cx, cy, rx, ry} as fractions of the picture
+const holeMask = new Uint8Array(AW*AH);
+function rebuildHoleMask(){
+  holeMask.fill(0);
+  holes.forEach(hl => {
+    if (!hl) return;
+    const cx = hl.cx * AW, cy = hl.cy * AH, rx = hl.rx * AW * 1.25 + 1, ry = hl.ry * AH * 1.25 + 1;
+    for (let y = Math.max(0, Math.floor(cy - ry)); y <= Math.min(AH-1, Math.ceil(cy + ry)); y++)
+      for (let x = Math.max(0, Math.floor(cx - rx)); x <= Math.min(AW-1, Math.ceil(cx + rx)); x++){
+        const dx = (x - cx) / rx, dy = (y - cy) / ry;
+        if (dx*dx + dy*dy <= 1) holeMask[y*AW + x] = 1;
+      }
+  });
+}
+function saveHoles(){ try { localStorage.setItem(HOLE_KEY, JSON.stringify(holes)); } catch(e){} }
+try { const hs = JSON.parse(localStorage.getItem(HOLE_KEY) || 'null'); if (Array.isArray(hs) && hs.length === 3) holes = hs; } catch(e){}
+rebuildHoleMask();
+
+function classifyDefault(r, g, b){       // plain colour ranges, used to find the coloured hole rings
+  rgb2hsv(r, g, b);
+  if (H < 0 || S < 0.45 || V < 0.25) return -1;
+  if (H < 18 || H >= 340) return 0;
+  if (H >= 42 && H < 72) return 1;
+  if (H >= 85 && H < 165) return 2;
+  return -1;
+}
+
+function floodBlob(mask, start){         // marks the blob as visited (value 2) and returns its size and box
+  let sp = 0, area = 0, x0 = AW, x1 = 0, y0 = AH, y1 = 0;
+  stack[sp++] = start; mask[start] = 2;
+  while (sp){
+    const p = stack[--sp], x = p % AW, y = (p / AW) | 0;
+    area++;
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    if (x > 0    && mask[p-1]  === 1){ mask[p-1]  = 2; stack[sp++] = p-1; }
+    if (x < AW-1 && mask[p+1]  === 1){ mask[p+1]  = 2; stack[sp++] = p+1; }
+    if (y > 0    && mask[p-AW] === 1){ mask[p-AW] = 2; stack[sp++] = p-AW; }
+    if (y < AH-1 && mask[p+AW] === 1){ mask[p+AW] = 2; stack[sp++] = p+AW; }
+  }
+  return {area, x0, y0, x1, y1};
+}
+
+function modelFromPixels(frame, idx){      // colour range of a hole ring, learned from its own pixels
+  if (!idx.length) return null;
+  rgb2hsv(frame[idx[0]*4], frame[idx[0]*4+1], frame[idx[0]*4+2]);
+  const ref = H, dh = [], ss = [], vv = [];
+  for (const p of idx){
+    rgb2hsv(frame[p*4], frame[p*4+1], frame[p*4+2]);
+    if (H < 0) continue;
+    let d = H - ref; if (d > 180) d -= 360; if (d < -180) d += 360;
+    dh.push(d); ss.push(S); vv.push(V);
+  }
+  if (!dh.length) return null;
+  const med = pct(dh, 0.5), sp = Math.max(Math.abs(pct(dh, 0.03) - med), Math.abs(pct(dh, 0.97) - med));
+  return {hC:(ref + med + 360) % 360, hTol:Math.min(34, Math.max(10, sp + 8)),
+          sMin:Math.max(0.15, pct(ss, 0.05) * 0.8), vMin:Math.max(0.1, pct(vv, 0.05) * 0.75)};
+}
+
+/* Follow the holes: look for each ring again, close to where it was; if it has been lost for a while, search the whole picture. */
+const ringMask = new Uint8Array(AW*AH), ringOrig = new Uint8Array(AW*AH);
+function findRing(i, hl, everywhere){
+  const cx = hl.cx * AW, cy = hl.cy * AH, rx = hl.rx * AW, ry = hl.ry * AH;
+  const x0 = everywhere ? 0 : Math.max(0, Math.floor(cx - rx*2.3)), x1 = everywhere ? AW-1 : Math.min(AW-1, Math.ceil(cx + rx*2.3));
+  const y0 = everywhere ? 0 : Math.max(0, Math.floor(cy - ry*2.3)), y1 = everywhere ? AH-1 : Math.min(AH-1, Math.ceil(cy + ry*2.3));
+  ringMask.fill(0);
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++){
+    const p = y*AW + x, o = p*4;
+    let hit;
+    if (hl.model){ rgb2hsv(lastFrame[o], lastFrame[o+1], lastFrame[o+2]); hit = inZone(hl.model, H, S, V); }
+    else hit = classifyDefault(lastFrame[o], lastFrame[o+1], lastFrame[o+2]) === i;
+    if (hit) ringMask[p] = 1;
+  }
+  ringOrig.set(ringMask);
+  const expect = hl.area || 60;
+  let best = null, bestD = 1e9;
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++){
+    const s = y*AW + x;
+    if (ringMask[s] !== 1) continue;
+    const b = floodBlob(ringMask, s);
+    const w = b.x1 - b.x0 + 1, hh = b.y1 - b.y0 + 1, asp = w / hh, fill = b.area / (w * hh);
+    const bx = (b.x0 + b.x1) >> 1, by = (b.y0 + b.y1) >> 1;
+    let hollow = true;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (ringOrig[(by+dy)*AW + bx + dx]) hollow = false;
+    if (b.area < expect * 0.45 || b.area > expect * 2.4 || asp < 0.6 || asp > 1.6 || fill < 0.25 || fill > 0.85 || !hollow) continue;
+    const d = Math.hypot((b.x0 + b.x1 + 1)/2 - cx, (b.y0 + b.y1 + 1)/2 - cy);
+    if (d < bestD){ bestD = d; best = b; }
+  }
+  return best ? {cx:(best.x0 + best.x1 + 1)/2/AW, cy:(best.y0 + best.y1 + 1)/2/AH,
+                 rx:(best.x1 - best.x0 + 1)/2/AW, ry:(best.y1 - best.y0 + 1)/2/AH, area:best.area} : null;
+}
+
+let holeTick = 0, holeSavedAt = 0;
+function trackHoles(now){
+  if (!lastFrame || (++holeTick % 2)) return;
+  let moved = false;
+  holes.forEach((hl, i) => {
+    if (!hl) return;
+    let r = findRing(i, hl, false);
+    hl.lostN = r ? 0 : (hl.lostN || 0) + 1;
+    if (!r && hl.lostN > 12 && hl.lostN % 10 === 0) r = findRing(i, hl, true);   // lost for a while: look everywhere
+    if (!r) return;
+    hl.lostN = 0;
+    const near = Math.hypot((r.cx - hl.cx) * AW, (r.cy - hl.cy) * AH);
+    const k = near > 6 ? 1 : 0.6;                                                // big jump (board moved fast): go straight there
+    if (Math.abs(r.cx - hl.cx) > 0.0015 || Math.abs(r.cy - hl.cy) > 0.0015) moved = true;
+    hl.cx += (r.cx - hl.cx) * k; hl.cy += (r.cy - hl.cy) * k;
+    hl.rx += (r.rx - hl.rx) * 0.3; hl.ry += (r.ry - hl.ry) * 0.3;
+    hl.area = (hl.area || r.area) + (r.area - (hl.area || r.area)) * 0.3;
+  });
+  if (moved){
+    rebuildHoleMask();
+    if (now - holeSavedAt > 3000){ holeSavedAt = now; saveHoles(); }
+  }
+}
+
+function autoFindHoles(){                // a hole = a round coloured RING (hollow in the middle)
+  if (!lastFrame){ toast('Start the camera first.'); return; }
+  let count = 0;
+  for (let i = 0; i < 3; i++){
+    const mask = new Uint8Array(AW*AH);
+    for (let p = 0; p < AW*AH; p++) if (classifyDefault(lastFrame[p*4], lastFrame[p*4+1], lastFrame[p*4+2]) === i) mask[p] = 1;
+    const orig = mask.slice();
+    let best = null;
+    for (let s = 0; s < mask.length; s++){
+      if (mask[s] !== 1) continue;
+      const b = floodBlob(mask, s);
+      const w = b.x1 - b.x0 + 1, hh = b.y1 - b.y0 + 1, asp = w / hh, fill = b.area / (w * hh);
+      const cx = (b.x0 + b.x1) >> 1, cy = (b.y0 + b.y1) >> 1;
+      let hollow = true;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (orig[(cy+dy)*AW + cx + dx]) hollow = false;
+      if (b.area >= 40 && asp >= 0.6 && asp <= 1.6 && fill >= 0.25 && fill <= 0.8 && hollow && (!best || b.area > best.area)) best = b;
+    }
+    if (best){
+      const idx = [];
+      for (let y = best.y0; y <= best.y1; y++) for (let x = best.x0; x <= best.x1; x++) if (orig[y*AW + x]) idx.push(y*AW + x);
+      holes[i] = {cx:(best.x0 + best.x1 + 1)/2/AW, cy:(best.y0 + best.y1 + 1)/2/AH,
+                  rx:(best.x1 - best.x0 + 1)/2/AW, ry:(best.y1 - best.y0 + 1)/2/AH,
+                  area:best.area, model:modelFromPixels(lastFrame, idx), lostN:0};
+      count++;
+    }
+  }
+  saveHoles(); rebuildHoleMask(); renderTrain();
+  toast(count ? 'Found ' + count + ' of 3 holes.' + (count < 3 ? ' Use the Mark buttons for the others.' : '')
+              : 'No hole rings found. Make sure the camera sees the coloured rings, or use the Mark buttons.');
+}
+
+/* ---- teaching: click on a ball and the page learns its colour, size and shape ---- */
+let teachMode = null;                    // 0/1/2 = teach that ball, 'ignore' = teach to ignore, null = off
+
+function growRegion(frame, sx, sy){      // pixels connected to the click that look like the same colour
+  let R = 0, G = 0, B = 0, n = 0;
+  for (let y = Math.max(0, sy-2); y <= Math.min(AH-1, sy+2); y++)
+    for (let x = Math.max(0, sx-2); x <= Math.min(AW-1, sx+2); x++){
+      const o = (y*AW + x) * 4; R += frame[o]; G += frame[o+1]; B += frame[o+2]; n++;
+    }
+  rgb2hsv(R/n, G/n, B/n);
+  const sh = H, ss = S, sv = V;
+  if (sh < 0 || ss < 0.2 || sv < 0.15) return null;          // clicked on grey / white / black
+  const okPix = p => { const o = p*4; rgb2hsv(frame[o], frame[o+1], frame[o+2]);
+    return H >= 0 && hdiff(H, sh) <= 16 && S >= ss*0.55 && V >= sv*0.5; };
+  const region = new Uint8Array(AW*AH), idx = [];
+  const start = sy*AW + sx;
+  if (!okPix(start)) return null;
+  let sp = 0; stack[sp++] = start; region[start] = 1;
+  while (sp && idx.length < 6000){
+    const p = stack[--sp]; idx.push(p);
+    const x = p % AW, y = (p / AW) | 0;
+    const nb = [x > 0 ? p-1 : -1, x < AW-1 ? p+1 : -1, y > 0 ? p-AW : -1, y < AH-1 ? p+AW : -1];
+    for (const q of nb) if (q >= 0 && !region[q] && okPix(q)){ region[q] = 1; stack[sp++] = q; }
+  }
+  return {region, idx, sh};
+}
+
+function captureThumb(region, x0, y0, x1, y1){         // picture of the ball only, background transparent
+  const bw = x1 - x0 + 1, bh = y1 - y0 + 1, T = 56;
+  const sc = Math.min(T / bw, T / bh);
+  const dw = Math.max(1, Math.round(bw * sc)), dh = Math.max(1, Math.round(bh * sc));
+  const c = document.createElement('canvas'); c.width = dw; c.height = dh;
+  const cx = c.getContext('2d', {willReadFrequently:true});
+  const kx = video.videoWidth / AW, ky = video.videoHeight / AH;
+  cx.drawImage(video, x0*kx, y0*ky, bw*kx, bh*ky, 0, 0, dw, dh);
+  const im = cx.getImageData(0, 0, dw, dh);
+  for (let py = 0; py < dh; py++) for (let px = 0; px < dw; px++){
+    const ax = x0 + Math.min(bw-1, Math.floor(px / dw * bw)), ay = y0 + Math.min(bh-1, Math.floor(py / dh * bh));
+    if (!region[ay*AW + ax]) im.data[(py*dw + px)*4 + 3] = 0;
+  }
+  cx.putImageData(im, 0, 0);
+  return c.toDataURL('image/png');
+}
+
+function pct(arr, q){
+  const s = arr.slice().sort((a, b) => a - b);
+  return s[Math.min(s.length-1, Math.max(0, Math.floor(q * (s.length-1))))];
+}
+
+function teachAt(ax, ay){
+  if (!lastFrame){ toast('The camera is not ready yet.'); return; }
+  const g = growRegion(lastFrame, ax, ay);
+  if (!g){ toast('Click on the coloured middle of the ball (not the white shine or the background).'); return; }
+  const n = g.idx.length;
+  if (n < 15){ toast('That spot is too small. Hold the ball closer to the camera.'); return; }
+  if (n > 2500){ toast('That area is too big for a ball. Click right on the ball.'); return; }
+
+  const dh = [], ss = [], vv = [];
+  let x0 = AW, x1 = 0, y0 = AH, y1 = 0;
+  for (const p of g.idx){
+    const o = p*4; rgb2hsv(lastFrame[o], lastFrame[o+1], lastFrame[o+2]);
+    let d = H - g.sh; if (d > 180) d -= 360; if (d < -180) d += 360;
+    dh.push(d); ss.push(S); vv.push(V);
+    const x = p % AW, y = (p / AW) | 0;
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+  if (typeof teachMode === 'string' && teachMode[0] === 'H'){          // mark a hole: click on its coloured ring
+    const hi = +teachMode[1], asp = bw / bh;
+    if (asp < 0.6 || asp > 1.7){ toast('That does not look like a round hole ring. Click on the coloured ring around the hole.'); return; }
+    holes[hi] = {cx:(x0 + x1 + 1)/2/AW, cy:(y0 + y1 + 1)/2/AH, rx:bw/2/AW, ry:bh/2/AH,
+                 area:n, model:modelFromPixels(lastFrame, g.idx), lostN:0};
+    saveHoles(); rebuildHoleMask(); renderTrain();
+    toast(NAMES[CH[hi]] + ' hole marked.');
+    return;
+  }
+  if (teachMode !== 'ignore' && (bw / bh > 1.8 || bh / bw > 1.8)){
+    toast('That shape is not round - the ball is probably touching something of the same colour.'); return;
+  }
+  const med = pct(dh, 0.5);
+  const spread = Math.max(Math.abs(pct(dh, 0.03) - med), Math.abs(pct(dh, 0.97) - med));
+  const zone = {
+    hC: (g.sh + med + 360) % 360,
+    hTol: Math.min(30, Math.max(9, spread + 7)),
+    sMin: Math.max(0.18, pct(ss, 0.05) * 0.85),
+    vMin: Math.max(0.12, pct(vv, 0.05) * 0.8),
+    sMed: pct(ss, 0.5), vMed: pct(vv, 0.5), aMin: n, aMax: n
+  };
+
+  if (teachMode === 'ignore'){
+    const clash = models.findIndex(m => m && inZone(m, zone.hC, zone.sMed, zone.vMed));
+    if (clash >= 0){ toast('That colour is too close to the ' + NAMES[CH[clash]] + ' ball. Click only on the face or clothes.'); return; }
+    ignoreZones.push(zone); if (ignoreZones.length > 8) ignoreZones.shift();
+    toast('OK - that colour will be ignored.');
+  } else {
+    const i = teachMode, old = models[i];
+    zone.thumbs = (old && old.thumbs ? old.thumbs : []).slice(-3);
+    zone.thumbs.push(captureThumb(g.region, x0, y0, x1, y1));
+    zone.samples = (old ? old.samples : 0) + 1;
+    if (old){                                         // merge with what was learned before
+      const c = (Math.atan2(Math.sin(old.hC*Math.PI/180) + Math.sin(zone.hC*Math.PI/180),
+                            Math.cos(old.hC*Math.PI/180) + Math.cos(zone.hC*Math.PI/180)) * 180 / Math.PI + 360) % 360;
+      zone.hTol = Math.min(34, Math.max(old.hTol + hdiff(old.hC, c), zone.hTol + hdiff(zone.hC, c)));
+      zone.hC = c;
+      zone.sMin = Math.min(old.sMin, zone.sMin); zone.vMin = Math.min(old.vMin, zone.vMin);
+      zone.aMin = Math.min(old.aMin, n); zone.aMax = Math.max(old.aMax, n);
+    }
+    models[i] = zone;
+    ignoreZones = ignoreZones.filter(z => !inZone(z, zone.hC, zone.sMed, zone.vMed));   // never ignore the ball itself
+    toast(NAMES[CH[i]] + ' ball learned (' + zone.samples + ' sample' + (zone.samples > 1 ? 's' : '') + '). Teach it again at another distance for better results.');
+  }
+  saveModels(); renderTrain();
+}
+
+function renderTrain(){
+  document.querySelectorAll('[data-teach]').forEach(b => b.classList.toggle('on', teachMode === +b.dataset.teach));
+  document.querySelectorAll('[data-markhole]').forEach(b => b.classList.toggle('on', teachMode === 'H' + b.dataset.markhole));
+  $('btnIgnore').classList.toggle('on', teachMode === 'ignore');
+  view.style.cursor = teachMode === null ? '' : 'crosshair';
+  $('teachHelp').textContent = typeof teachMode === 'string' && teachMode[0] === 'H'
+    ? 'Click on the coloured ring of the ' + NAMES[CH[+teachMode[1]]] + ' hole in the camera picture. Press the button again when done.'
+    : teachMode === null
+    ? 'Press a Teach button, then click on that ball in the camera picture. The game learns its colour, size and round shape, so faces, arms and clothes are not mistaken for it. Click a few times at different distances.'
+    : teachMode === 'ignore'
+      ? 'Click on a face, skin or clothes in the camera picture to make the game ignore that colour. Press the button again when done.'
+      : 'Click on the ' + NAMES[CH[teachMode]] + ' ball in the camera picture. Press the button again when done.';
+  $('thumbs').innerHTML = CH.map((c, i) => {
+    const m = models[i];
+    return '<div class="thumbrow"><b>' + NAMES[c] + '</b>' +
+      (m ? (m.thumbs || []).map(t => '<img alt="' + NAMES[c] + ' ball" src="' + t + '">').join('') + '<span>' + m.samples + ' saved</span>'
+         : '<span>built-in colours (not taught yet)</span>') + '</div>';
+  }).join('') + '<div class="thumbrow"><b>Holes</b><span>' + (holes.some(x => x) ? 'marked: ' + holes.map((x, i) => x ? NAMES[CH[i]] : null).filter(Boolean).join(', ') : 'not marked yet') + '</span></div>' + (ignoreZones.length ? '<div class="thumbrow"><b>Ignore</b><span>' + ignoreZones.length + ' colour' + (ignoreZones.length > 1 ? 's' : '') + ' (face / clothes)</span></div>' : '');
+}
+
+document.querySelectorAll('[data-teach]').forEach(b => {
+  b.onclick = () => { const i = +b.dataset.teach; teachMode = teachMode === i ? null : i; renderTrain(); };
+});
+document.querySelectorAll('[data-markhole]').forEach(b => {
+  b.onclick = () => { const m = 'H' + b.dataset.markhole; teachMode = teachMode === m ? null : m; renderTrain(); };
+});
+$('btnAutoHoles').onclick = autoFindHoles;
+$('btnClearHoles').onclick = () => { holes = [null, null, null]; saveHoles(); rebuildHoleMask(); renderTrain(); toast('Hole marks cleared.'); };
+$('btnIgnore').onclick = () => { teachMode = teachMode === 'ignore' ? null : 'ignore'; renderTrain(); };
+$('btnClearTrain').onclick = () => {
+  models = [null, null, null]; ignoreZones = []; teachMode = null; saveModels(); renderTrain(); toast('Training cleared.');
+};
+view.addEventListener('click', e => {
+  if (teachMode === null) return;
+  if (!cameraOn){ toast('Start the camera first.'); return; }
+  const r = view.getBoundingClientRect();
+  const ax = Math.floor((e.clientX - r.left) / r.width * AW), ay = Math.floor((e.clientY - r.top) / r.height * AH);
+  teachAt(Math.min(AW-1, Math.max(0, ax)), Math.min(AH-1, Math.max(0, ay)));
+});
+
+function draw(){
+  if (cameraOn && video.videoWidth){
+    if (view.width !== video.videoWidth){ view.width = video.videoWidth; view.height = video.videoHeight; }
+    vctx.drawImage(video, 0, 0, view.width, view.height);
+    const sx = view.width / AW, sy = view.height / AH;
+    holes.forEach((hl, i) => {                    // circle round each marked hole
+      if (!hl) return;
+      const c = CH[i], cx = hl.cx * view.width, cy = hl.cy * view.height;
+      const rx = hl.rx * view.width * 1.12, ry = hl.ry * view.height * 1.12;
+      const flash = dotFlash[c] > performance.now(), lost = (hl.lostN || 0) > 6;
+      vctx.globalAlpha = lost ? 0.45 : 1;
+      vctx.lineWidth = flash ? 7 : 3; vctx.strokeStyle = vctx.fillStyle = COLORS[c];
+      vctx.setLineDash(flash ? [] : [9, 5]);
+      vctx.beginPath(); vctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); vctx.stroke();
+      vctx.setLineDash([]);
+      vctx.font = 'bold 15px system-ui'; vctx.textBaseline = 'top';
+      vctx.fillText(NAMES[c] + ' hole' + (lost ? ' (searching...)' : ''), Math.max(2, cx - rx), Math.min(view.height - 18, cy + ry + 3));
+      vctx.globalAlpha = 1;
+    });
+    vctx.lineWidth = 3; vctx.font = 'bold 16px system-ui'; vctx.textBaseline = 'bottom';
+    CH.forEach((c, i) => {
+      const b = track[i].blob;
+      if (!b) return;
+      vctx.strokeStyle = vctx.fillStyle = COLORS[c];
+      vctx.strokeRect(b.x0*sx, b.y0*sy, (b.x1-b.x0+1)*sx, (b.y1-b.y0+1)*sy);
+      vctx.fillText(NAMES[c], b.x0*sx, b.y0*sy - 3);
+    });
+    if (teachMode !== null){
+      const msg = teachMode === 'ignore' ? 'Click on a face / clothes to ignore'
+        : (typeof teachMode === 'string') ? 'Click on the ring of the ' + NAMES[CH[+teachMode[1]]] + ' hole'
+        : 'Click on the ' + NAMES[CH[teachMode]] + ' ball';
+      vctx.font = 'bold 20px system-ui'; vctx.textBaseline = 'top'; vctx.fillStyle = 'rgba(0,0,0,.65)';
+      vctx.fillRect(0, 0, view.width, 34); vctx.fillStyle = '#fff'; vctx.fillText(msg, 10, 7);
+    }
+  } else {
+    vctx.fillStyle = '#05050f'; vctx.fillRect(0, 0, view.width, view.height);
+    vctx.fillStyle = '#9aa0d4'; vctx.font = '20px system-ui'; vctx.textAlign = 'center';
+    vctx.fillText('Camera is off - press "Start camera"', view.width/2, view.height/2);
+    vctx.textAlign = 'start';
+  }
+}
+
+function frame(now){
+  if (cameraOn && video.readyState >= 2 && now - lastAnalyze >= 66){
+    lastAnalyze = now;
+    try { analyze(now); } catch(e){}
+  }
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+async function fillCameraList(){
+  try {
+    const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+    const cur = stream && stream.getVideoTracks()[0] ? stream.getVideoTracks()[0].getSettings().deviceId : '';
+    $('camSel').innerHTML = devs.map((d, i) =>
+      '<option value="' + d.deviceId + '"' + (d.deviceId === cur ? ' selected' : '') + '>' +
+      (d.label || 'Camera ' + (i+1)).replace(/</g,'&lt;') + '</option>').join('');
+  } catch(e){}
+}
+
+async function startCamera(deviceId){
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    toast('This browser has no camera access.'); return;
+  }
+  stopCamera();
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: Object.assign({width:{ideal:640}, height:{ideal:480}}, deviceId ? {deviceId:{exact:deviceId}} : {}),
+      audio: false
+    });
+    video.srcObject = stream;
+    await video.play();
+    cameraOn = true;
+    $('btnCam').textContent = 'Stop camera';
+    fillCameraList();
+  } catch(e){
+    cameraOn = false;
+    toast('Camera blocked or busy: ' + (e && e.name ? e.name : 'error'));
+  }
+  render();
+}
+
+function stopCamera(){
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = null; cameraOn = false;
+  track.forEach(t => { t.present = false; t.rawSince = 0; t.lostAt = 0; t.blob = null; });
+  $('btnCam').textContent = 'Start camera';
+}
+
+$('btnCam').onclick = () => { cameraOn ? (stopCamera(), render()) : startCamera($('camSel').value || undefined); };
+$('camSel').onchange = () => startCamera($('camSel').value);
+
+renderTrain();
+renderHoles();
+startCamera();          // try to start right away (the browser will ask for permission)
+render();
+})();
+</script>
+</body>
+</html>
